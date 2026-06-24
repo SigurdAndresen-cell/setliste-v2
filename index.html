@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Setliste til Spotify</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #1DB954;
+      --green-dark: #17a349;
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --surface2: #1c1c1c;
+      --border: rgba(255,255,255,0.08);
+      --border2: rgba(255,255,255,0.15);
+      --text: #fff;
+      --text2: rgba(255,255,255,0.55);
+      --text3: rgba(255,255,255,0.3);
+      --radius: 10px;
+      --radius-lg: 14px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2rem 1rem 4rem;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 560px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 2rem;
+    }
+    .logo svg { width: 28px; height: 28px; }
+    .logo span {
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--text3);
+      margin-bottom: 6px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      background: var(--surface2);
+      border: 0.5px solid var(--border2);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 14px;
+      padding: 10px 12px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+      margin-bottom: 1rem;
+    }
+    input[type="text"]:focus { border-color: var(--green); }
+    input[type="text"]::placeholder { color: var(--text3); }
+
+    .drop-zone {
+      border: 1.5px dashed var(--border2);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--green);
+      background: rgba(29,185,84,0.05);
+    }
+    .drop-zone svg { width: 36px; height: 36px; color: var(--green); margin-bottom: 10px; }
+    .drop-zone p { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+    .drop-zone small { font-size: 12px; color: var(--text2); }
+
+    .btn-green {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--green);
+      color: #000;
+      border: none;
+      border-radius: 999px;
+      padding: 11px 22px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      text-decoration: none;
+    }
+    .btn-green:hover { background: var(--green-dark); }
+    .btn-green:active { transform: scale(0.97); }
+    .btn-green:disabled { background: #333; color: #666; cursor: default; transform: none; }
+
+    .btn-outline {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      color: var(--text2);
+      border: 0.5px solid var(--border2);
+      border-radius: 999px;
+      padding: 9px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+      font-family: inherit;
+    }
+    .btn-outline:hover { color: var(--text); border-color: rgba(255,255,255,0.3); }
+
+    .song-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 0.5px solid var(--border);
+    }
+    .song-row:last-child { border-bottom: none; }
+    .song-num { font-size: 12px; color: var(--text3); min-width: 22px; text-align: right; font-variant-numeric: tabular-nums; }
+
+    .song-edit {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      padding: 0;
+      outline: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.15s;
+    }
+    .song-edit:focus { border-bottom-color: var(--green); }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 99px;
+    }
+    .badge-ok { background: rgba(29,185,84,0.15); color: var(--green); }
+    .badge-miss { background: rgba(255,80,80,0.15); color: #ff6b6b; }
+
+    .progress-wrap {
+      background: var(--surface2);
+      border-radius: 99px;
+      height: 4px;
+      overflow: hidden;
+      margin: 0.75rem 0;
+    }
+    .progress-bar {
+      height: 100%;
+      background: var(--green);
+      border-radius: 99px;
+      transition: width 0.3s;
+      width: 0%;
+    }
+
+    .status { font-size: 13px; color: var(--text2); margin: 0.5rem 0; min-height: 18px; }
+
+    .user-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+    }
+    .user-info { display: flex; align-items: center; gap: 8px; }
+    .user-dot {
+      width: 8px; height: 8px;
+      background: var(--green);
+      border-radius: 50%;
+    }
+
+    .connect-hero {
+      text-align: center;
+      padding: 3rem 1.5rem;
+    }
+    .connect-hero svg { width: 56px; height: 56px; color: var(--green); margin-bottom: 1rem; }
+    .connect-hero h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .connect-hero p { font-size: 14px; color: var(--text2); margin-bottom: 1.5rem; }
+
+    .done-hero { text-align: center; padding: 2rem 1rem; }
+    .done-hero svg { width: 52px; height: 52px; color: var(--green); margin-bottom: 1rem; }
+    .done-hero h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    .done-hero p { font-size: 14px; color: var(--text2); margin-bottom: 1.5rem; }
+
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 1.25rem; }
+
+    .not-found-section { margin-top: 1.25rem; text-align: left; }
+    .not-found-section h4 { font-size: 12px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; }
+    .not-found-section p { font-size: 13px; color: var(--text2); margin: 2px 0; }
+
+    .section { display: none; }
+    .section.active { display: block; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="currentColor" style="color: #1DB954;">
+      <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+    </svg>
+    <span>Setliste → Spotify</span>
+  </div>
+
+  <!-- CONNECT -->
+  <div id="sec-connect" class="section active card">
+    <div class="connect-hero">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+      </svg>
+      <h1>Setliste til Spotify</h1>
+      <p>Last opp en setliste-PDF og få en ferdig Spotify-spilleliste automatisk.</p>
+      <button class="btn-green" id="connect-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+        Logg inn med Spotify
+      </button>
+    </div>
+  </div>
+
+  <!-- UPLOAD -->
+  <div id="sec-upload" class="section">
+    <div class="user-bar">
+      <div class="user-info">
+        <div class="user-dot"></div>
+        <span style="font-size:14px; font-weight:500;" id="user-name"></span>
+      </div>
+      <button class="btn-outline" id="logout-btn" style="padding:6px 14px; font-size:12px;">Logg ut</button>
+    </div>
+
+    <div class="card">
+      <label>Artist / band</label>
+      <input type="text" id="artist-input" placeholder="F.eks. Kaizers Orkester" />
+
+      <label>Spillelistenavn</label>
+      <input type="text" id="playlist-name" placeholder="F.eks. Kaizers — Oslo Spektrum 2026" />
+
+      <div class="drop-zone" id="drop-zone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 11-.99-3.467l2.31-.66a2.25 2.25 0 001.632-2.163zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 01-1.632 2.163l-1.32.377a1.803 1.803 0 01-.99-3.467l2.31-.66A2.25 2.25 0 009 15.553z" />
+        </svg>
+        <p>Slipp setliste-PDF her</p>
+        <small>eller klikk for å velge fil</small>
+        <input type="file" id="file-input" accept=".pdf" style="display:none" />
+      </div>
+      <p class="status" id="upload-status"></p>
+    </div>
+  </div>
+
+  <!-- SONGS -->
+  <div id="sec-songs" class="section">
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+        <div>
+          <p style="font-weight:600; font-size:15px;" id="song-header">Låter</p>
+          <p style="font-size:12px; color:var(--text2); margin-top:2px;">Rediger titler om noe ble feil</p>
+        </div>
+      </div>
+      <div id="song-list"></div>
+      <div class="btn-row">
+        <button class="btn-green" id="create-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+          Opprett spilleliste
+        </button>
+        <button class="btn-outline" id="back-btn">← Tilbake</button>
+      </div>
+      <p class="status" id="create-status"></p>
+      <div class="progress-wrap" id="prog-wrap" style="display:none;">
+        <div class="progress-bar" id="prog-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DONE -->
+  <div id="sec-done" class="section card">
+    <div class="done-hero">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <h2 id="done-title">Spilleliste klar!</h2>
+      <p id="done-stats"></p>
+      <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+        <a id="playlist-link" href="#" target="_blank" class="btn-green">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+          Åpne i Spotify
+        </a>
+        <button class="btn-outline" id="new-btn">+ Ny setliste</button>
+      </div>
+      <div class="not-found-section" id="not-found-section" style="display:none;">
+        <h4>Ikke funnet på Spotify</h4>
+        <div id="not-found-list"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const CLIENT_ID = 'f024e6cd071e4b5e98d59e3eed9787fc';
+const REDIRECT_URI = window.location.origin + window.location.pathname;
+const SCOPES = 'playlist-modify-public playlist-modify-private user-read-private';
+
+let accessToken = null;
+let userId = null;
+let songs = [];
+
+function show(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+async function pkceChallenge() {
+  const arr = new Uint8Array(32);
+  crypto.getRandomValues(arr);
+  const verifier = btoa(String.fromCharCode(...arr)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  const challenge = btoa(String.fromCharCode(...new Uint8Array(hash))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  return { verifier, challenge };
+}
+
+document.getElementById('connect-btn').addEventListener('click', async () => {
+  const { verifier, challenge } = await pkceChallenge();
+  sessionStorage.setItem('pkce_verifier', verifier);
+  const p = new URLSearchParams({ client_id: CLIENT_ID, response_type: 'code', redirect_uri: REDIRECT_URI, scope: SCOPES, code_challenge_method: 'S256', code_challenge: challenge });
+  window.location.href = 'https://accounts.spotify.com/authorize?' + p;
+});
+
+async function handleCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  if (!code) return;
+  const verifier = sessionStorage.getItem('pkce_verifier');
+  if (!verifier) return;
+  history.replaceState({}, '', window.location.pathname);
+  const res = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: REDIRECT_URI, client_id: CLIENT_ID, code_verifier: verifier })
+  });
+  const data = await res.json();
+  if (data.access_token) {
+    accessToken = data.access_token;
+    sessionStorage.setItem('spotify_token', accessToken);
+    sessionStorage.removeItem('pkce_verifier');
+    await loadUser();
+  }
+}
+
+async function loadUser() {
+  const res = await fetch('https://api.spotify.com/v1/me', { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (!res.ok) { logout(); return; }
+  const data = await res.json();
+  userId = data.id;
+  document.getElementById('user-name').textContent = data.display_name || data.id;
+  show('sec-upload');
+}
+
+function logout() {
+  accessToken = null; userId = null;
+  sessionStorage.removeItem('spotify_token');
+  show('sec-connect');
+}
+
+document.getElementById('logout-btn').addEventListener('click', logout);
+
+const saved = sessionStorage.getItem('spotify_token');
+if (saved) { accessToken = saved; loadUser(); } else { handleCallback(); }
+
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+async function handleFile(file) {
+  const msg = document.getElementById('upload-status');
+  msg.textContent = 'Leser PDF...';
+  try {
+    const ab = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
+    let text = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(x => x.str).join(' ') + '\n';
+    }
+    msg.textContent = 'Analyserer med AI...';
+    await extractSongs(text);
+  } catch(e) {
+    msg.textContent = 'Kunne ikke lese PDF. Prøv igjen.';
+  }
+}
+
+async function extractSongs(text) {
+  const artist = document.getElementById('artist-input').value.trim();
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      system: 'Du er ekspert på å lese setlister. Trekk ut alle låttitler i rekkefølge. Returner KUN en JSON-array, ingen annen tekst, ingen markdown. Format: ["Tittel 1","Tittel 2"]',
+      messages: [{ role: 'user', content: `${artist ? 'Artist: ' + artist + '\n' : ''}Setliste:\n${text}` }]
+    })
+  });
+  const data = await res.json();
+  const raw = data.content.map(b => b.text || '').join('').replace(/```json|```/g, '').trim();
+  songs = JSON.parse(raw);
+  renderSongs();
+}
+
+function renderSongs() {
+  document.getElementById('song-header').textContent = `${songs.length} låter funnet`;
+  const list = document.getElementById('song-list');
+  list.innerHTML = '';
+  songs.forEach((t, i) => {
+    const row = document.createElement('div');
+    row.className = 'song-row';
+    row.innerHTML = `<span class="song-num">${i+1}</span>
+      <input class="song-edit" type="text" value="${t.replace(/"/g,'&quot;')}" data-index="${i}" />
+      <span id="ts-${i}" style="min-width:70px; text-align:right;"></span>`;
+    list.appendChild(row);
+  });
+  list.querySelectorAll('.song-edit').forEach(inp => {
+    inp.addEventListener('change', e => { songs[parseInt(e.target.dataset.index)] = e.target.value; });
+  });
+  show('sec-songs');
+}
+
+document.getElementById('back-btn').addEventListener('click', () => show('sec-upload'));
+
+document.getElementById('create-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('create-btn');
+  const statusEl = document.getElementById('create-status');
+  const progWrap = document.getElementById('prog-wrap');
+  const progBar = document.getElementById('prog-bar');
+  const name = document.getElementById('playlist-name').value.trim() || 'Setliste';
+  const artist = document.getElementById('artist-input').value.trim();
+
+  btn.disabled = true;
+  progWrap.style.display = 'block';
+  statusEl.textContent = 'Oppretter spilleliste på Spotify...';
+
+  const plRes = await fetch(`https://api.spotify.com/v1/users/${userId}/playlists`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, public: false, description: 'Generert fra setliste — AndresenLyd' })
+  });
+  const playlist = await plRes.json();
+  const playlistId = playlist.id;
+
+  const uris = [];
+  const notFound = [];
+
+  for (let i = 0; i < songs.length; i++) {
+    statusEl.textContent = `Søker opp ${i+1} av ${songs.length}: ${songs[i]}`;
+    progBar.style.width = Math.round(((i+1)/songs.length)*85) + '%';
+    const q = encodeURIComponent(artist ? `${songs[i]} ${artist}` : songs[i]);
+    const r = await fetch(`https://api.spotify.com/v1/search?q=${q}&type=track&limit=1`, { headers: { Authorization: 'Bearer ' + accessToken } });
+    const d = await r.json();
+    const badge = document.getElementById('ts-'+i);
+    if (d.tracks && d.tracks.items.length > 0) {
+      uris.push(d.tracks.items[0].uri);
+      if (badge) badge.innerHTML = '<span class="badge badge-ok">Funnet</span>';
+    } else {
+      notFound.push(songs[i]);
+      if (badge) badge.innerHTML = '<span class="badge badge-miss">Ikke funnet</span>';
+    }
+    await new Promise(r => setTimeout(r, 120));
+  }
+
+  for (let i = 0; i < uris.length; i += 100) {
+    await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uris: uris.slice(i, i+100) })
+    });
+  }
+
+  progBar.style.width = '100%';
+  btn.disabled = false;
+
+  document.getElementById('done-title').textContent = `"${name}" er klar!`;
+  document.getElementById('done-stats').textContent = `${uris.length} av ${songs.length} låter lagt til`;
+  document.getElementById('playlist-link').href = `https://open.spotify.com/playlist/${playlistId}`;
+
+  if (notFound.length > 0) {
+    document.getElementById('not-found-section').style.display = 'block';
+    document.getElementById('not-found-list').innerHTML = notFound.map(t => `<p>${t}</p>`).join('');
+  }
+
+  show('sec-done');
+});
+
+document.getElementById('new-btn').addEventListener('click', () => {
+  songs = [];
+  document.getElementById('not-found-section').style.display = 'none';
+  document.getElementById('upload-status').textContent = '';
+  show('sec-upload');
+});
+</script>
+</body>
+</html>
